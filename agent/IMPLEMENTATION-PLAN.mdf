@@ -36,7 +36,7 @@ Check ☑ when finished; keep the list intact.
 Sprint 0 – Project Bootstrap
  ☑ Clone WordPress Plugin Boilerplate.
 
- ☑ Configure composer autoload (IndivisibleSJC\\NewsletterArchive\\).
+ ☑ Configure composer autoload (brianmoney\NewsletterArchive\\).
 
  ☑ Create primary plugin header file with GPL license.
 
@@ -48,24 +48,20 @@ Sprint 1 – Infrastructure & Settings
  Validate/sanitize options; display admin notice if missing.
 
 Sprint 2 – Data Sync Layer
- MailchimpService class: OAuth + GET /campaigns.
+ ☑ MailchimpService class: OAuth + GET /campaigns.
 
- Transient cache (12 h default).
+ ☑ Transient cache (12 h default).
 
- Nightly cron (wp_schedule_event) + manual “Sync Now” button.
+ ☑ Nightly cron (wp_schedule_event) + manual “Sync Now” button.
 
- Graceful error handling/logging.
+ ☑ Graceful error handling/logging.
 
 Sprint 3 – Custom Post Type & URLs
- Register newsletter CPT (supports → title, editor, excerpt).
-
- Rewrite /newsletters/%year%/%monthnum%/%postname%/ (with_front => false).
-
- On activation/deactivation flush rewrites.
-
- Migration: create/update CPT posts from fetched campaigns.
-
- Unique slug generation.
+ ☑ Register newsletter CPT (supports → title, editor, excerpt).
+ ☑ Rewrite /newsletters/%year%/%monthnum%/%postname%/ (with_front => false).
+ ☑ On activation/deactivation flush rewrites.
+ ☑ Migration: create/update CPT posts from fetched campaigns. (Fixed duplicate import bug: always updates by campaign ID or title/date, never creates duplicates)
+ ☑ Unique slug generation.
 
 Sprint 4 – Templates & Shortcodes
  Single template single-newsletter.php.

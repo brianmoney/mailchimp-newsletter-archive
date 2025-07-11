@@ -29,4 +29,16 @@
 	 * practising this, we should strive to set a better example in our own work.
 	 */
 
+	$(function() {
+		$('#mcna-advanced-toggle').on('click', function(){
+			$('#mcna-advanced-section').slideToggle(200);
+			var btn = $(this);
+			if(btn.text() === 'Show Advanced Settings'){
+				btn.text('Hide Advanced Settings');
+			}else{
+				btn.text('Show Advanced Settings');
+			}
+		});
+	});
+
 })( jQuery );
