@@ -1,0 +1,88 @@
+You are an autonomous coding agent (GPT-4.1 / Claude Sonnet-4 / Gemini-2.5)
+building the “Mailchimp Newsletter Archive” WordPress plugin.
+
+YOU MUST:
+1. Treat THIS DOCUMENT (IMPLEMENTATION-PLAN.md) as the definitive backlog,
+   roadmap, and coding-standards reference for the entire project.
+2. Re-read it at the start of every session and whenever you feel stuck.
+3. Mark each [ ] task with a ☑ when complete. Never delete tasks—check them off.
+4. If any requirement is ambiguous, ASK THE HUMAN in plain language before coding.
+5. Adhere to WordPress & PHP coding standards (see links) and the style guide below.
+6. Commit early, commit often; push atomic PRs that map to the tasks here.
+
+### Coding Style & Scaffold Rules
+- Base project on the latest WordPress Plugin Boilerplate (WPPB). Use composer,
+  PSR-4 autoloading, and namespaces `IndivisibleSJC\NewsletterArchive\*`.
+- Follow WordPress PHP Coding Standards (`phpcs --standard=WordPress`).
+- Escape, sanitize, and nonce every output or form field.
+- Fetch Mailchimp data via the Marketing API `/campaigns` endpoint and cache
+  with the Transients API (12 h default). Add a nightly `wp_schedule_event`.
+- Register a `newsletter` Custom Post Type with rewrite
+  `/newsletters/%year%/%monthnum%/%postname%/`.
+- Add an admin Settings page (API key, server prefix, audience ID, cache TTL).
+- Provide `[mailchimp_archive]` shortcode and templates for archive/single views.
+- On activation/deactivation, flush rewrite rules.
+
+***Repeat: you MUST follow IMPLEMENTATION-PLAN.md; keep it updated; ask the
+human if unsure.***
+
+
+🗺️ OVERVIEW
+The plugin syncs Mailchimp campaigns into a newsletter Custom Post Type, exposes an archive at /newsletters/, and renders individual SEO-friendly pages at /newsletters/YYYY/MM/{slug}/.
+
+🏁 SPRINT BREAKDOWN & TASK LIST
+Check ☑ when finished; keep the list intact.
+
+Sprint 0 – Project Bootstrap
+ ☑ Clone WordPress Plugin Boilerplate.
+
+ ☑ Configure composer autoload (IndivisibleSJC\\NewsletterArchive\\).
+
+ ☑ Create primary plugin header file with GPL license.
+
+ ☑ Commit “initial scaffold”.
+
+Sprint 1 – Infrastructure & Settings
+ Build Settings page (API Key, Server Prefix, Audience ID, Cache TTL, Max Campaigns).
+
+ Validate/sanitize options; display admin notice if missing.
+
+Sprint 2 – Data Sync Layer
+ MailchimpService class: OAuth + GET /campaigns.
+
+ Transient cache (12 h default).
+
+ Nightly cron (wp_schedule_event) + manual “Sync Now” button.
+
+ Graceful error handling/logging.
+
+Sprint 3 – Custom Post Type & URLs
+ Register newsletter CPT (supports → title, editor, excerpt).
+
+ Rewrite /newsletters/%year%/%monthnum%/%postname%/ (with_front => false).
+
+ On activation/deactivation flush rewrites.
+
+ Migration: create/update CPT posts from fetched campaigns.
+
+ Unique slug generation.
+
+Sprint 4 – Templates & Shortcodes
+ Single template single-newsletter.php.
+
+ Shortcode [mailchimp_archive] → archive.php template.
+
+ Minimal namespaced CSS.
+
+Sprint 5 – Security, QA & Docs
+ Run phpcs --standard=WordPress; fix offenses.
+
+ Escape every output; nonce all forms.
+
+ Unit tests (wp-phpunit) for slug, caching, CPT creation.
+
+ Write README.md; prepare release zip via GitHub Action.
+
+
+
+Remember: the agent must keep this file current, check off tasks as they finish them, and ask the human when anything is unclear.
