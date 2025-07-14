@@ -30,7 +30,13 @@ class Plugin_Name_Activator {
 	 * @since    1.0.0
 	 */
 	public static function activate() {
-
+		// Ensure the core plugin class is loaded
+		if ( ! class_exists( 'Plugin_Name' ) ) {
+			require_once dirname( __FILE__ ) . '/class-plugin-name.php';
+		}
+		if ( class_exists( 'Plugin_Name' ) ) {
+			Plugin_Name::activate();
+		}
 	}
 
 }

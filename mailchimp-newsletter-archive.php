@@ -16,7 +16,7 @@
  * Plugin Name:       Mailchimp Newsletter Archive
  * Plugin URI:        https://github.com/brianmoney/mailchimp-newsletter-archive
  * Description:       Syncs Mailchimp campaigns into a newsletter Custom Post Type and exposes an SEO-friendly archive at /newsletters/.
- * Version:           1.0.1
+ * Version:           1.0.2
  * Author:            Brian Money
  * Author URI:        https://aspereo.com
  * License:           GPL-2.0+
@@ -38,7 +38,7 @@ if ( ! defined( 'WPINC' ) ) {
  * Start at version 1.0.0 and use SemVer - https://semver.org
  * Rename this for your plugin and update it as you release new versions.
  */
-define( 'MAILCHIMP_NEWSLETTER_ARCHIVE_VERSION', '1.0.1' );
+define( 'MAILCHIMP_NEWSLETTER_ARCHIVE_VERSION', '1.0.2' );
 
 /**
  * The code that runs during plugin activation.
