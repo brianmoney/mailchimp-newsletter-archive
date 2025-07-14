@@ -167,6 +167,13 @@ class Plugin_Name_Admin {
 		?>
 		<div class="wrap">
 			<h1><?php esc_html_e( 'Mailchimp Newsletter Archive Settings', 'mailchimp-newsletter-archive' ); ?></h1>
+
+			<div class="notice notice-info" style="padding:16px 20px;margin-bottom:24px;">
+				<strong><?php esc_html_e('Newsletter List Shortcode', 'mailchimp-newsletter-archive'); ?>:</strong><br>
+				<?php esc_html_e('To display your newsletter archive on any page or post, use this shortcode:', 'mailchimp-newsletter-archive'); ?><br>
+				<code style="font-size:1.2em;">[mailchimp_archive]</code>
+			</div>
+
 			<?php $this->handle_manual_sync(); ?>
 			<form method="post" action="options.php">
 				<?php
