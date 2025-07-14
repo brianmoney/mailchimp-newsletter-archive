@@ -215,13 +215,16 @@ class Plugin_Name {
 		$args = array(
 			'labels'             => $labels,
 			'public'             => true,
-			'has_archive'        => true,
-			'supports'           => array( 'title', 'editor', 'excerpt' ),
+			'has_archive'        => $base_slug, // archive at /newsletters/
+			'supports'           => array( 'title', 'editor', 'excerpt', 'custom-fields', 'revisions', 'author' ),
 			'rewrite'            => array(
 				'slug'       => $base_slug . '/%year%/%monthnum%',
 				'with_front' => false,
 			),
 			'show_in_rest'       => true,
+			'show_in_menu'       => true,
+			'menu_icon'          => 'dashicons-email-alt',
+			'menu_position'      => 20,
 		);
 		register_post_type( 'newsletter', $args );
 		// Add rewrite tags for year and monthnum
@@ -253,6 +256,118 @@ class Plugin_Name {
 		$this->loader->run();
 		add_action( 'mailchimp_newsletter_archive_cron_sync', array( __CLASS__, 'cron_sync_callback' ) );
 		add_action( 'init', array( $this, 'register_newsletter_cpt' ) );
+		add_shortcode( 'mailchimp_archive', array( $this, 'shortcode_mailchimp_archive' ) );
+		add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_archive_styles' ) );
+		// Use the correct WordPress method for CPT template loading
+		add_filter( 'single_template', array( $this, 'load_single_newsletter_template' ) );
+		
+
+		add_action( 'wp_head', array( $this, 'add_newsletter_meta_tags' ) );
+		add_action( 'admin_init', array( $this, 'maybe_flush_rewrite_rules' ) );
+		// Ensure newsletter archive only shows newsletter posts
+		add_action( 'pre_get_posts', array( $this, 'filter_newsletter_archive_query' ) );
+		// Remove Archives widget/links from newsletter pages
+		add_filter( 'widget_archives_args', array( $this, 'remove_archives_widget' ) );
+		add_filter( 'get_archives_link', array( $this, 'remove_archives_links' ), 10, 6 );
+	}
+
+	/**
+	 * Only show newsletter CPT posts on the /newsletters/ archive
+	 */
+	public function filter_newsletter_archive_query( $query ) {
+		if (
+			!is_admin() &&
+			$query->is_main_query() &&
+			is_post_type_archive( 'newsletter' )
+		) {
+			$query->set( 'post_type', 'newsletter' );
+		}
+	}
+
+	public function maybe_flush_rewrite_rules() {
+		// Flush rewrite rules once to ensure CPT is properly registered
+		if ( ! get_option( 'mailchimp_newsletter_archive_rewrite_flushed' ) ) {
+			flush_rewrite_rules();
+			update_option( 'mailchimp_newsletter_archive_rewrite_flushed', true );
+		}
+	}
+
+
+
+	public function load_single_newsletter_template( $template ) {
+		// Simple, proven method for CPT template loading
+		if ( is_singular( 'newsletter' ) ) {
+			$plugin_template = plugin_dir_path( dirname( __FILE__ ) ) . 'public/partials/single-newsletter.php';
+			
+			if ( file_exists( $plugin_template ) ) {
+				return $plugin_template;
+			}
+		}
+		return $template;
+	}
+
+
+
+	public function enqueue_archive_styles() {
+		wp_register_style( 'mailchimp-newsletter-archive-shortcode', plugin_dir_url( dirname( __FILE__ ) ) . 'public/css/plugin-name-public.css', array(), $this->get_version() );
+		wp_enqueue_style( 'mailchimp-newsletter-archive-shortcode' );
+	}
+
+	public function shortcode_mailchimp_archive( $atts ) {
+		$options = get_option( 'mailchimp_newsletter_archive_options' );
+		$per_page = isset($options['newsletters_per_page']) ? absint($options['newsletters_per_page']) : 10;
+		$paged = max( 1, get_query_var('paged') ? get_query_var('paged') : (get_query_var('page') ? get_query_var('page') : 1) );
+		$args = array(
+			'post_type'      => 'newsletter',
+			'post_status'    => 'publish',
+			'posts_per_page' => $per_page,
+			'paged'          => $paged,
+			'orderby'        => 'date',
+			'order'          => 'DESC',
+		);
+		$query = new WP_Query($args);
+		if ( ! $query->have_posts() ) {
+			return '<div class="mailchimp-archive-list"><p>' . esc_html__('No newsletters found.', 'mailchimp-newsletter-archive') . '</p></div>';
+		}
+		$output = '<div class="mailchimp-archive-list">';
+		$output .= '<ul class="mailchimp-archive-items">';
+		while ( $query->have_posts() ) {
+			$query->the_post();
+			$output .= '<li class="mailchimp-archive-item">';
+			$output .= '<a class="mailchimp-archive-title" href="' . esc_url( get_permalink() ) . '">' . esc_html( get_the_title() ) . '</a>';
+			$output .= '<span class="mailchimp-archive-date">' . esc_html( get_the_date() ) . '</span>';
+			// Show excerpt if available, otherwise show a brief description
+			if ( has_excerpt() ) {
+				$output .= '<div class="mailchimp-archive-excerpt">' . esc_html( get_the_excerpt() ) . '</div>';
+			} else {
+				$output .= '<div class="mailchimp-archive-excerpt">' . esc_html__('Newsletter from our mailing list.', 'mailchimp-newsletter-archive') . '</div>';
+			}
+			$output .= '</li>';
+		}
+		$output .= '</ul>';
+		// Pagination
+		$big = 999999999;
+		$pagination = paginate_links( array(
+			'base'      => str_replace( $big, '%#%', esc_url( get_pagenum_link( $big ) ) ),
+			'format'    => '?paged=%#%',
+			'current'   => $paged,
+			'total'     => $query->max_num_pages,
+			'type'      => 'array',
+			'prev_text' => __('« Previous', 'mailchimp-newsletter-archive'),
+			'next_text' => __('Next »', 'mailchimp-newsletter-archive'),
+		) );
+		if ( $pagination ) {
+			$output .= '<div class="mailchimp-archive-pagination">';
+			$output .= '<ul class="page-numbers">';
+			foreach ( $pagination as $link ) {
+				$output .= '<li>' . $link . '</li>';
+			}
+			$output .= '</ul>';
+			$output .= '</div>';
+		}
+		$output .= '</div>';
+		wp_reset_postdata();
+		return $output;
 	}
 
 	/**
@@ -341,7 +456,6 @@ class Plugin_Name {
 		}
 		foreach ( $data['campaigns'] as $campaign ) {
 			$post_title = $campaign['settings']['subject_line'] ?? '';
-			$post_excerpt = $campaign['long_archive_url'] ?? '';
 			$raw_content = $campaign['content']['html'] ?? '';
 			$campaign_id = $campaign['id'] ?? '';
 			$send_time = $campaign['send_time'] ?? '';
@@ -370,6 +484,26 @@ class Plugin_Name {
 			$post_content = preg_replace( "/\n{2,}/", '<div style="margin: 1.5em 0;"></div>', $post_content );
 			// Remove 'View this email in your browser' links with *|ARCHIVE|* href
 			$post_content = preg_replace( '/<a[^>]*href=["\\\']\*\|ARCHIVE\|\*["\\\'][^>]*>.*?<\/a>/is', '', $post_content );
+			
+			// Create a proper excerpt from the content
+			$post_excerpt = '';
+			$text_content = wp_strip_all_tags($post_content);
+			if ( !empty($text_content) ) {
+				// Remove Mailchimp merge tags like *|MC_PREVIEW_TEXT|*, *|MC:SUBJECT|*, etc.
+				$text_content = preg_replace('/\*\|[^*]+\|\*/', '', $text_content);
+				// Clean up extra whitespace and newlines
+				$text_content = preg_replace('/\s+/', ' ', $text_content);
+				$text_content = trim($text_content);
+				// Take first 20 words if content is available
+				if ( !empty($text_content) ) {
+					$post_excerpt = wp_trim_words($text_content, 20, '...');
+				} else {
+					$post_excerpt = __('Newsletter from our mailing list.', 'mailchimp-newsletter-archive');
+				}
+			} else {
+				$post_excerpt = __('Newsletter from our mailing list.', 'mailchimp-newsletter-archive');
+			}
+			
 			$post_date = $send_time ? get_date_from_gmt( gmdate( 'Y-m-d H:i:s', strtotime( $send_time ) ) ) : current_time( 'mysql' );
 			$post_date_gmt = $send_time ? gmdate( 'Y-m-d H:i:s', strtotime( $send_time ) ) : current_time( 'mysql', 1 );
 
@@ -407,7 +541,6 @@ class Plugin_Name {
 
 			$postarr = [
 				'post_title'   => $post_title,
-				'post_excerpt' => $post_excerpt,
 				'post_content' => $post_content,
 				'post_type'    => 'newsletter',
 				'post_date'    => $post_date,
@@ -416,7 +549,7 @@ class Plugin_Name {
 
 			if ( $existing ) {
 				$postarr['ID'] = $existing[0];
-				// Do NOT set or change post_status for existing posts
+				// Do NOT update excerpt for existing posts - let users edit it manually
 				$post_id = wp_update_post( $postarr );
 				// Ensure campaign ID meta is set
 				if ( ! get_post_meta( $post_id, '_mailchimp_campaign_id', true ) ) {
@@ -424,6 +557,7 @@ class Plugin_Name {
 				}
 			} else {
 				$postarr['post_status'] = $import_status;
+				$postarr['post_excerpt'] = $post_excerpt; // Only set excerpt for new posts
 				// Ensure unique slug
 				$postarr['post_name'] = wp_unique_post_slug( sanitize_title( $post_title ), 0, $import_status, 'newsletter', 0 );
 				$post_id = wp_insert_post( $postarr );
@@ -444,6 +578,56 @@ class Plugin_Name {
 				set_transient('mcna_base_url_changed', 1, 60);
 			}
 		}
+	}
+
+	public function add_newsletter_meta_tags() {
+		if ( is_singular( 'newsletter' ) ) {
+			global $post;
+			?>
+			<!-- Open Graph Meta Tags -->
+			<meta property="og:type" content="article" />
+			<meta property="og:title" content="<?php echo esc_attr( get_the_title() ); ?>" />
+			<meta property="og:url" content="<?php echo esc_attr( get_permalink() ); ?>" />
+			<meta property="og:site_name" content="<?php echo esc_attr( get_bloginfo('name') ); ?>" />
+			<?php if ( has_excerpt() ) : ?>
+			<meta property="og:description" content="<?php echo esc_attr( get_the_excerpt() ); ?>" />
+			<?php endif; ?>
+			<meta property="article:published_time" content="<?php echo get_the_date('c'); ?>" />
+			<meta property="article:modified_time" content="<?php echo get_the_modified_date('c'); ?>" />
+			<meta property="article:section" content="Newsletter" />
+			
+			<!-- Twitter Card Meta Tags -->
+			<meta name="twitter:card" content="summary" />
+			<meta name="twitter:title" content="<?php echo esc_attr( get_the_title() ); ?>" />
+			<?php if ( has_excerpt() ) : ?>
+			<meta name="twitter:description" content="<?php echo esc_attr( get_the_excerpt() ); ?>" />
+			<?php endif; ?>
+			
+			<!-- Additional SEO Meta -->
+			<meta name="robots" content="index, follow" />
+			<link rel="canonical" href="<?php echo esc_attr( get_permalink() ); ?>" />
+			<?php
+		}
+	}
+
+	/**
+	 * Remove Archives widget from newsletter pages
+	 */
+	public function remove_archives_widget( $args ) {
+		if ( is_singular( 'newsletter' ) || is_post_type_archive( 'newsletter' ) ) {
+			return false;
+		}
+		return $args;
+	}
+
+	/**
+	 * Remove Archives links from newsletter pages
+	 */
+	public function remove_archives_links( $link_html, $url, $text, $format, $before, $after ) {
+		if ( is_singular( 'newsletter' ) || is_post_type_archive( 'newsletter' ) ) {
+			return '';
+		}
+		return $link_html;
 	}
 
 }

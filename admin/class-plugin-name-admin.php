@@ -132,6 +132,13 @@ class Plugin_Name_Admin {
 			'mailchimp-newsletter-archive',
 			'mailchimp_newsletter_archive_main'
 		);
+		add_settings_field(
+			'newsletters_per_page',
+			__( 'Newsletters Per Page', 'mailchimp-newsletter-archive' ),
+			array( $this, 'field_newsletters_per_page' ),
+			'mailchimp-newsletter-archive',
+			'mailchimp_newsletter_archive_main'
+		);
 	}
 
 	/**
@@ -149,6 +156,7 @@ class Plugin_Name_Admin {
 		// Sanitize base_url (slug): lowercase, no spaces, only a-z0-9-_ (default: newsletters)
 		$base_url = sanitize_title_with_dashes( $input['base_url'] ?? 'newsletters' );
 		$sanitized['base_url'] = $base_url ? $base_url : 'newsletters';
+		$sanitized['newsletters_per_page'] = max(1, absint($input['newsletters_per_page'] ?? 10));
 		return $sanitized;
 	}
 
@@ -308,6 +316,17 @@ class Plugin_Name_Admin {
 		<input type="text" name="mailchimp_newsletter_archive_options[base_url]" value="<?php echo esc_attr( $base_url ); ?>" class="regular-text" />
 		<p class="description">
 			<?php esc_html_e( 'This controls the base URL for the newsletter archive (e.g., /newsletters/ or /mailers/). Changing this will change all newsletter URLs. After saving, permalinks will be flushed automatically. Changing this may affect SEO and break old links.', 'mailchimp-newsletter-archive' ); ?>
+		</p>
+		<?php
+	}
+
+	public function field_newsletters_per_page() {
+		$options = get_option( 'mailchimp_newsletter_archive_options' );
+		$val = $options['newsletters_per_page'] ?? 10;
+		?>
+		<input type="number" min="1" name="mailchimp_newsletter_archive_options[newsletters_per_page]" value="<?php echo esc_attr( $val ); ?>" class="small-text" />
+		<p class="description">
+			<?php esc_html_e( 'How many newsletters to show per page in the [mailchimp_archive] shortcode.', 'mailchimp-newsletter-archive' ); ?>
 		</p>
 		<?php
 	}

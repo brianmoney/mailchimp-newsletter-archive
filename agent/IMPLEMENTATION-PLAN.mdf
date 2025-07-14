@@ -64,11 +64,11 @@ Sprint 3 – Custom Post Type & URLs
  ☑ Unique slug generation.
 
 Sprint 4 – Templates & Shortcodes
- Single template single-newsletter.php.
+ ☑ Single template single-newsletter.php. (COMPLETE: Template loading working perfectly)
 
- Shortcode [mailchimp_archive] → archive.php template.
+ ☑ Shortcode [mailchimp_archive] → archive.php template.
 
- Minimal namespaced CSS.
+ ☑ Minimal namespaced CSS.
 
 Sprint 5 – Security, QA & Docs
  Run phpcs --standard=WordPress; fix offenses.
